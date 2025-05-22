@@ -35,9 +35,9 @@ if input_method == "Manual Input":
     lon = st.number_input("Vehicle Location Longitude", value=0.0)
     electric_utility = st.text_input("Electric Utility")
 
-    # Construct a DataFrame for prediction
+       # Construct a DataFrame for prediction
     input_data = pd.DataFrame([[
-        county, city, state, model_year, ev_type,
+        county, city, state, model_year,
         cafv_eligibility, electric_range, base_msrp, district, lat, lon,
         electric_utility
     ]], columns=feature_names)
