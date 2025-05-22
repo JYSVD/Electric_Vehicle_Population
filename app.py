@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-# Load the trained model
+# Load the trained model (make sure this model was trained without the lat/lon features)
 model = joblib.load("random_forest_model.pkl")
 
 st.title("Electric Vehicle Population Prediction App")
@@ -10,7 +10,7 @@ st.title("Electric Vehicle Population Prediction App")
 # Input method selection
 input_method = st.radio("Select input method", ["Manual Input", "Upload CSV"])
 
-# Updated feature names list without Latitude and Longitude
+# Features excluding Latitude and Longitude
 feature_names = [
     "County", "City", "State", "Model Year",
     "Clean Alternative Fuel Vehicle (CAFV) Eligibility",
@@ -32,11 +32,10 @@ if input_method == "Manual Input":
     district = st.number_input("Legislative District", value=0, step=1)
     electric_utility = st.text_input("Electric Utility")
 
-    # Construct DataFrame without lat/lon
     input_data = pd.DataFrame([[
         county, city, state, model_year,
-        cafv_eligibility, electric_range, base_msrp, district,
-        electric_utility
+        cafv_eligibility, electric_range, base_msrp,
+        district, electric_utility
     ]], columns=feature_names)
 
     if st.button("Predict"):
@@ -56,6 +55,7 @@ else:
         st.dataframe(df.head())
 
         if st.button("Predict from CSV"):
+            # Make sure the CSV contains the correct features matching the model's expected input
             prediction = model.predict(df)
             df["Predicted Population"] = prediction
             st.write("Predictions:")
