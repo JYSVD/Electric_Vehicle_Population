@@ -17,6 +17,9 @@ state_map = {"State1": 0, "State2": 1}
 cafv_map = {"Yes": 1, "No": 0}
 utility_map = {"UtilityA": 0, "UtilityB": 1}
 
+# List of columns to explicitly drop if found in uploaded CSV
+columns_to_drop = ["VIN (1-10)", "Make", "Model", "Vehicle Location Latitude", "Vehicle Location Longitude"]
+
 # Input method selection
 input_method = st.radio("Select input method", ["Manual Input", "Upload CSV"])
 
@@ -60,10 +63,14 @@ else:
 
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
-        st.write("Preview of Uploaded Data:")
+
+        # Drop unused columns if they exist
+        df.drop(columns=[col for col in columns_to_drop if col in df.columns], inplace=True)
+
+        st.write("Preview of Cleaned Uploaded Data:")
         st.dataframe(df.head())
 
-        # Show and drop unexpected columns
+        # Drop any other unexpected columns
         extra_columns = list(set(df.columns) - set(feature_names))
         if extra_columns:
             st.warning(f"Removing unexpected columns: {extra_columns}")
