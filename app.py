@@ -17,8 +17,13 @@ state_map = {"State1": 0, "State2": 1}
 cafv_map = {"Yes": 1, "No": 0}
 utility_map = {"UtilityA": 0, "UtilityB": 1}
 
-# List of columns to explicitly drop if found in uploaded CSV
-columns_to_drop = ["VIN (1-10)", "Make", "Model", "Vehicle Location Latitude", "Vehicle Location Longitude"]
+# List of features to remove from both manual and CSV input
+features_to_remove = [
+    "VIN (1-10)", "Make", "Model", "Vehicle Location Latitude", "Vehicle Location Longitude"
+]
+
+# Filter out unwanted features from the model's expected features
+filtered_feature_names = [f for f in feature_names if f not in features_to_remove]
 
 # Input method selection
 input_method = st.radio("Select input method", ["Manual Input", "Upload CSV"])
@@ -35,7 +40,7 @@ if input_method == "Manual Input":
     st.subheader("Enter Feature Values Manually")
 
     user_input = {}
-    for feature in feature_names:
+    for feature in filtered_feature_names:
         if feature in ["County", "City", "State", "Clean Alternative Fuel Vehicle (CAFV) Eligibility", "Electric Utility"]:
             user_input[feature] = st.text_input(feature)
         elif feature in ["Model Year", "Electric Range", "Legislative District"]:
@@ -46,7 +51,7 @@ if input_method == "Manual Input":
             user_input[feature] = st.text_input(feature)
 
     if st.button("Predict"):
-        input_df = pd.DataFrame([user_input], columns=feature_names)
+        input_df = pd.DataFrame([user_input], columns=filtered_feature_names)
 
         # Encode categorical columns
         input_df = encode_categorical(input_df)
@@ -64,20 +69,20 @@ else:
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
 
-        # Drop unused columns if they exist
-        df.drop(columns=[col for col in columns_to_drop if col in df.columns], inplace=True)
+        # Drop explicitly unwanted columns
+        df.drop(columns=[col for col in features_to_remove if col in df.columns], inplace=True)
 
         st.write("Preview of Cleaned Uploaded Data:")
         st.dataframe(df.head())
 
-        # Drop any other unexpected columns
-        extra_columns = list(set(df.columns) - set(feature_names))
+        # Drop any extra columns not in the expected list
+        extra_columns = list(set(df.columns) - set(filtered_feature_names))
         if extra_columns:
             st.warning(f"Removing unexpected columns: {extra_columns}")
-            df = df[feature_names]
+            df = df[filtered_feature_names]
 
-        if list(df.columns) != feature_names:
-            st.error(f"CSV columns still do not match expected features.\nExpected columns: {feature_names}")
+        if list(df.columns) != filtered_feature_names:
+            st.error(f"CSV columns still do not match expected features.\nExpected columns: {filtered_feature_names}")
         else:
             # Encode categorical columns
             df = encode_categorical(df)
