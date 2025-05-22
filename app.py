@@ -17,25 +17,21 @@ state_map = {"State1": 0, "State2": 1}
 cafv_map = {"Yes": 1, "No": 0}
 utility_map = {"UtilityA": 0, "UtilityB": 1}
 
-def encode_categorical(data):
-    for col, mapping in {
-        "County": county_map,
-        "City": city_map,
-        "State": state_map,
-        "Clean Alternative Fuel Vehicle (CAFV) Eligibility": cafv_map,
-        "Electric Utility": utility_map
-    }.items():
-        if col in data.columns:
-            original_values = data[col].astype(str).unique()
-            data[col] = data[col].astype(str).map(mapping)
-            unmapped = data[col].isna()
-            if unmapped.any():
-                st.warning(f"Unmapped values in '{col}': {set(original_values) - set(mapping.keys())}")
-            data[col] = data[col].fillna(-1).astype("Int64")
-    return data
-
 # Input method selection
 input_method = st.radio("Select input method", ["Manual Input", "Upload CSV"])
+
+def encode_categorical(data):
+    if "County" in data.columns:
+        data["County"] = data["County"].astype(str).map(county_map).fillna(-1).astype("Int64")
+    if "City" in data.columns:
+        data["City"] = data["City"].astype(str).map(city_map).fillna(-1).astype("Int64")
+    if "State" in data.columns:
+        data["State"] = data["State"].astype(str).map(state_map).fillna(-1).astype("Int64")
+    if "Clean Alternative Fuel Vehicle (CAFV) Eligibility" in data.columns:
+        data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"] = data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"].astype(str).map(cafv_map).fillna(-1).astype("Int64")
+    if "Electric Utility" in data.columns:
+        data["Electric Utility"] = data["Electric Utility"].astype(str).map(utility_map).fillna(-1).astype("Int64")
+    return data
 
 if input_method == "Manual Input":
     st.subheader("Enter Feature Values Manually")
@@ -49,21 +45,18 @@ if input_method == "Manual Input":
         elif feature == "Base MSRP":
             user_input[feature] = st.number_input(feature, value=0.0)
         else:
+            # For features not used manually, set default value
             user_input[feature] = st.text_input(feature, value="Unknown")
 
     if st.button("Predict"):
         input_df = pd.DataFrame([user_input], columns=feature_names)
         input_df = encode_categorical(input_df)
 
-        if input_df.isna().any().any():
-            st.error("Input contains NaN values after encoding. Please check your inputs.")
-            st.write("Columns with NaNs:", input_df.columns[input_df.isna().any()].tolist())
-        else:
-            try:
-                prediction = model.predict(input_df)
-                st.success(f"Predicted Electric Vehicle Type: {prediction[0]}")
-            except Exception as e:
-                st.error(f"Prediction error: {e}")
+        try:
+            prediction = model.predict(input_df)
+            st.success(f"Predicted Electric Vehicle Type: {prediction[0]}")
+        except Exception as e:
+            st.error(f"Prediction error: {e}")
 
 else:
     st.subheader("Upload a CSV File")
@@ -71,6 +64,7 @@ else:
 
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
+
         st.write("Preview of Uploaded Data:")
         st.dataframe(df.head())
 
@@ -81,10 +75,7 @@ else:
             df = df[feature_names]
             df = encode_categorical(df)
 
-            if df.isna().any().any():
-                st.error("Data contains NaN values after encoding. Please check your CSV.")
-                st.write("Columns with NaNs:", df.columns[df.isna().any()].tolist())
-            elif st.button("Predict from CSV"):
+            if st.button("Predict from CSV"):
                 try:
                     prediction = model.predict(df)
                     df["Predicted EV Type"] = prediction
