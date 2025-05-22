@@ -17,30 +17,27 @@ state_map = {"State1": 0, "State2": 1}
 cafv_map = {"Yes": 1, "No": 0}
 utility_map = {"UtilityA": 0, "UtilityB": 1}
 
-# List of features to remove from both manual and CSV input
-features_to_remove = [
-    "VIN (1-10)", "Make", "Model", "Vehicle Location Latitude", "Vehicle Location Longitude"
-]
-
-# Filter out unwanted features from the model's expected features
-filtered_feature_names = [f for f in feature_names if f not in features_to_remove]
-
 # Input method selection
 input_method = st.radio("Select input method", ["Manual Input", "Upload CSV"])
 
 def encode_categorical(data):
-    data["County"] = data["County"].astype(str).map(county_map).fillna(-1).astype("Int64")
-    data["City"] = data["City"].astype(str).map(city_map).fillna(-1).astype("Int64")
-    data["State"] = data["State"].astype(str).map(state_map).fillna(-1).astype("Int64")
-    data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"] = data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"].astype(str).map(cafv_map).fillna(-1).astype("Int64")
-    data["Electric Utility"] = data["Electric Utility"].astype(str).map(utility_map).fillna(-1).astype("Int64")
+    if "County" in data.columns:
+        data["County"] = data["County"].astype(str).map(county_map).fillna(-1).astype("Int64")
+    if "City" in data.columns:
+        data["City"] = data["City"].astype(str).map(city_map).fillna(-1).astype("Int64")
+    if "State" in data.columns:
+        data["State"] = data["State"].astype(str).map(state_map).fillna(-1).astype("Int64")
+    if "Clean Alternative Fuel Vehicle (CAFV) Eligibility" in data.columns:
+        data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"] = data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"].astype(str).map(cafv_map).fillna(-1).astype("Int64")
+    if "Electric Utility" in data.columns:
+        data["Electric Utility"] = data["Electric Utility"].astype(str).map(utility_map).fillna(-1).astype("Int64")
     return data
 
 if input_method == "Manual Input":
     st.subheader("Enter Feature Values Manually")
 
     user_input = {}
-    for feature in filtered_feature_names:
+    for feature in feature_names:
         if feature in ["County", "City", "State", "Clean Alternative Fuel Vehicle (CAFV) Eligibility", "Electric Utility"]:
             user_input[feature] = st.text_input(feature)
         elif feature in ["Model Year", "Electric Range", "Legislative District"]:
@@ -48,10 +45,11 @@ if input_method == "Manual Input":
         elif feature == "Base MSRP":
             user_input[feature] = st.number_input(feature, value=0.0)
         else:
-            user_input[feature] = st.text_input(feature)
+            # For features not manually used (like VIN, Make, etc.), give default value
+            user_input[feature] = st.text_input(feature, value="Unknown")
 
     if st.button("Predict"):
-        input_df = pd.DataFrame([user_input], columns=filtered_feature_names)
+        input_df = pd.DataFrame([user_input], columns=feature_names)
 
         # Encode categorical columns
         input_df = encode_categorical(input_df)
@@ -69,21 +67,17 @@ else:
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
 
-        # Drop explicitly unwanted columns
-        df.drop(columns=[col for col in features_to_remove if col in df.columns], inplace=True)
-
-        st.write("Preview of Cleaned Uploaded Data:")
+        st.write("Preview of Uploaded Data:")
         st.dataframe(df.head())
 
-        # Drop any extra columns not in the expected list
-        extra_columns = list(set(df.columns) - set(filtered_feature_names))
-        if extra_columns:
-            st.warning(f"Removing unexpected columns: {extra_columns}")
-            df = df[filtered_feature_names]
-
-        if list(df.columns) != filtered_feature_names:
-            st.error(f"CSV columns still do not match expected features.\nExpected columns: {filtered_feature_names}")
+        # Ensure all required features are present
+        missing_cols = [col for col in feature_names if col not in df.columns]
+        if missing_cols:
+            st.error(f"The following required columns are missing from the CSV: {missing_cols}")
         else:
+            # Reorder columns to match the model's expected feature order
+            df = df[feature_names]
+
             # Encode categorical columns
             df = encode_categorical(df)
 
