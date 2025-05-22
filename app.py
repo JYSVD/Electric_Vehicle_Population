@@ -12,7 +12,7 @@ input_method = st.radio("Select input method", ["Manual Input", "Upload CSV"])
 
 # Replace with the actual feature names from your dataset
 feature_names = [
-    "County", "City", "State", "Model Year", "Electric Vehicle Type",
+    "County", "City", "State", "Model Year",
     "Clean Alternative Fuel Vehicle (CAFV) Eligibility",
     "Electric Range", "Base MSRP", "Legislative District", "Vehicle Location Latitude",
     "Vehicle Location Longitude", "Electric Utility"
@@ -27,7 +27,6 @@ if input_method == "Manual Input":
     city = st.text_input("City")
     state = st.text_input("State")
     model_year = st.number_input("Model Year", value=2020, step=1)
-    ev_type = st.text_input("Electric Vehicle Type")
     cafv_eligibility = st.text_input("CAFV Eligibility")
     electric_range = st.number_input("Electric Range", value=0, step=1)
     base_msrp = st.number_input("Base MSRP", value=0.0)
