@@ -10,18 +10,29 @@ st.title("Electric Vehicle Population Prediction App")
 # Extract expected feature names from the model
 feature_names = list(model.feature_names_in_)
 
+# Example mappings for categorical features (replace with your actual categories)
+county_map = {"CountyA": 0, "CountyB": 1}
+city_map = {"CityX": 0, "CityY": 1}
+state_map = {"State1": 0, "State2": 1}
+cafv_map = {"Yes": 1, "No": 0}
+utility_map = {"UtilityA": 0, "UtilityB": 1}
+
 # Input method selection
 input_method = st.radio("Select input method", ["Manual Input", "Upload CSV"])
+
+def encode_categorical(data):
+    data["County"] = county_map.get(data["County"], -1)
+    data["City"] = city_map.get(data["City"], -1)
+    data["State"] = state_map.get(data["State"], -1)
+    data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"] = cafv_map.get(data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"], -1)
+    data["Electric Utility"] = utility_map.get(data["Electric Utility"], -1)
+    return data
 
 if input_method == "Manual Input":
     st.subheader("Enter Feature Values Manually")
 
-    # Prepare a dict to hold user inputs
     user_input = {}
-
-    # Dynamically create input fields based on expected features
     for feature in feature_names:
-        # Customize input types based on feature name or type knowledge
         if feature in ["County", "City", "State", "Clean Alternative Fuel Vehicle (CAFV) Eligibility", "Electric Utility"]:
             user_input[feature] = st.text_input(feature)
         elif feature in ["Model Year", "Electric Range", "Legislative District"]:
@@ -29,15 +40,16 @@ if input_method == "Manual Input":
         elif feature == "Base MSRP":
             user_input[feature] = st.number_input(feature, value=0.0)
         else:
-            # Default fallback: text input
             user_input[feature] = st.text_input(feature)
 
     if st.button("Predict"):
-        # Build DataFrame for prediction
-        input_data = pd.DataFrame([user_input], columns=feature_names)
+        input_df = pd.DataFrame([user_input], columns=feature_names)
+
+        # Encode categorical columns
+        input_df = encode_categorical(input_df)
 
         try:
-            prediction = model.predict(input_data)
+            prediction = model.predict(input_df)
             st.success(f"Predicted Population: {int(prediction[0])}")
         except Exception as e:
             st.error(f"Prediction error: {e}")
@@ -55,6 +67,9 @@ else:
             if list(df.columns) != feature_names:
                 st.error(f"CSV columns do not match expected features.\nExpected columns: {feature_names}")
             else:
+                # Encode categorical columns in CSV
+                df = encode_categorical(df)
+
                 try:
                     prediction = model.predict(df)
                     df["Predicted Population"] = prediction
