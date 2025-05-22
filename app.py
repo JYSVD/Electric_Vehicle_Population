@@ -28,7 +28,6 @@ def encode_categorical(data):
     data["Electric Utility"] = data["Electric Utility"].astype(str).map(utility_map).fillna(-1).astype("Int64")
     return data
 
-
 if input_method == "Manual Input":
     st.subheader("Enter Feature Values Manually")
 
@@ -46,7 +45,7 @@ if input_method == "Manual Input":
     if st.button("Predict"):
         input_df = pd.DataFrame([user_input], columns=feature_names)
 
-        # Encode categorical columns correctly using .map()
+        # Encode categorical columns
         input_df = encode_categorical(input_df)
 
         try:
@@ -64,13 +63,19 @@ else:
         st.write("Preview of Uploaded Data:")
         st.dataframe(df.head())
 
-        if st.button("Predict from CSV"):
-            if list(df.columns) != feature_names:
-                st.error(f"CSV columns do not match expected features.\nExpected columns: {feature_names}")
-            else:
-                # Encode categorical columns in CSV using .map()
-                df = encode_categorical(df)
+        # Show and drop unexpected columns
+        extra_columns = list(set(df.columns) - set(feature_names))
+        if extra_columns:
+            st.warning(f"Removing unexpected columns: {extra_columns}")
+            df = df[feature_names]
 
+        if list(df.columns) != feature_names:
+            st.error(f"CSV columns still do not match expected features.\nExpected columns: {feature_names}")
+        else:
+            # Encode categorical columns
+            df = encode_categorical(df)
+
+            if st.button("Predict from CSV"):
                 try:
                     prediction = model.predict(df)
                     df["Predicted Population"] = prediction
