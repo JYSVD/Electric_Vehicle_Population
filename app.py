@@ -2,57 +2,45 @@ import streamlit as st
 import pandas as pd
 import joblib
 
+# Load model and related metadata
 @st.cache_resource
 def load_model():
-    # Adjust filename to your model file
-    model_data = joblib.load("random_forest_model.pkl")
-    # Unpack contents (adjust according to what you saved)
-    model = model_data['model']
-    feature_names = model_data['feature_names']
-    label_encoders = model_data.get('label_encoders', {})  # may be empty dict
-    target_le = model_data.get('target_le', None)          # may be None if not used
-    return model, feature_names, label_encoders, target_le
+    return joblib.load("electric_vehicle_model.pkl")
 
 model, feature_names, label_encoders, target_le = load_model()
 
 st.title("Electric Vehicle Type Prediction")
 
-input_method = st.radio("Select input method", ["Manual Input", "Upload CSV"])
+st.subheader("Input EV Information")
 
-if input_method == "Manual Input":
-    inputs = {}
-    for feature in feature_names:
-        if feature in label_encoders:
-            options = label_encoders[feature].classes_
-            inputs[feature] = st.selectbox(f"Select {feature}", options)
-        else:
-            inputs[feature] = st.number_input(f"Enter {feature}", value=0.0)
+# Manual inputs
+make = st.selectbox("Make", label_encoders["Make"].classes_)
+model_name = st.text_input("Model")
+model_year = st.number_input("Model Year", min_value=1990, max_value=2025, value=2020)
+electric_range = st.number_input("Electric Range (miles)", min_value=0, value=100)
+base_msrp = st.number_input("Base MSRP ($)", min_value=0, value=30000)
+legislative_district = st.selectbox("Legislative District", label_encoders["Legislative District"].classes_)
+electric_utility = st.selectbox("Electric Utility", label_encoders["Electric Utility"].classes_)
+cafe_vehicle_description = st.text_input("CAFE Vehicle Description")
+vehicle_location = st.text_input("Vehicle Location")
+county = st.selectbox("County", label_encoders["County"].classes_)
 
-    if st.button("Predict"):
-        input_df = pd.DataFrame([inputs])
-        # Encode categorical inputs
-        for col, le in label_encoders.items():
-            input_df[col] = le.transform(input_df[col])
-        prediction = model.predict(input_df)
-        if target_le:
-            prediction_label = target_le.inverse_transform(prediction)[0]
-        else:
-            prediction_label = prediction[0]
-        st.success(f"Predicted Vehicle Type: {prediction_label}")
+# Encode categorical fields
+input_data = pd.DataFrame([[
+    label_encoders["Make"].transform([make])[0],
+    model_name,  # You can skip this if not used by model
+    model_year,
+    electric_range,
+    base_msrp,
+    label_encoders["Legislative District"].transform([legislative_district])[0],
+    label_encoders["Electric Utility"].transform([electric_utility])[0],
+    cafe_vehicle_description,  # Skip if unused by model
+    vehicle_location,          # Skip if unused by model
+    label_encoders["County"].transform([county])[0]
+]], columns=feature_names)
 
-elif input_method == "Upload CSV":
-    uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
-    if uploaded_file:
-        df = pd.read_csv(uploaded_file)
-        for col, le in label_encoders.items():
-            if col in df.columns:
-                df[col] = le.transform(df[col])
-        st.write("Data preview:")
-        st.dataframe(df)
-        if st.button("Predict from CSV"):
-            predictions = model.predict(df[feature_names])
-            if target_le:
-                predictions = target_le.inverse_transform(predictions)
-            df["Predicted Vehicle Type"] = predictions
-            st.success("Predictions done:")
-            st.dataframe(df)
+# Predict
+if st.button("Predict Vehicle Type"):
+    prediction = model.predict(input_data)
+    predicted_label = target_le.inverse_transform(prediction)[0]
+    st.success(f"Predicted Vehicle Type: **{predicted_label}**")
