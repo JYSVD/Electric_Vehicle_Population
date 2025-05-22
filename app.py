@@ -21,12 +21,13 @@ utility_map = {"UtilityA": 0, "UtilityB": 1}
 input_method = st.radio("Select input method", ["Manual Input", "Upload CSV"])
 
 def encode_categorical(data):
-    data["County"] = data["County"].map(county_map).fillna(-1).astype(int)
-    data["City"] = data["City"].map(city_map).fillna(-1).astype(int)
-    data["State"] = data["State"].map(state_map).fillna(-1).astype(int)
-    data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"] = data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"].map(cafv_map).fillna(-1).astype(int)
-    data["Electric Utility"] = data["Electric Utility"].map(utility_map).fillna(-1).astype(int)
+    data["County"] = data["County"].astype(str).map(county_map).fillna(-1).astype("Int64")
+    data["City"] = data["City"].astype(str).map(city_map).fillna(-1).astype("Int64")
+    data["State"] = data["State"].astype(str).map(state_map).fillna(-1).astype("Int64")
+    data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"] = data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"].astype(str).map(cafv_map).fillna(-1).astype("Int64")
+    data["Electric Utility"] = data["Electric Utility"].astype(str).map(utility_map).fillna(-1).astype("Int64")
     return data
+
 
 if input_method == "Manual Input":
     st.subheader("Enter Feature Values Manually")
