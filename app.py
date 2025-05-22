@@ -5,12 +5,12 @@ import joblib
 # Load the trained model
 model = joblib.load("random_forest_model.pkl")
 
-st.title("Electric Vehicle Population Prediction App")
+st.title("Electric Vehicle Type Prediction App")
 
 # Extract expected feature names from the model
 feature_names = list(model.feature_names_in_)
 
-# Example mappings for categorical features (replace with your actual categories)
+# Example mappings for categorical features (update as needed)
 county_map = {"CountyA": 0, "CountyB": 1}
 city_map = {"CityX": 0, "CityY": 1}
 state_map = {"State1": 0, "State2": 1}
@@ -45,18 +45,16 @@ if input_method == "Manual Input":
         elif feature == "Base MSRP":
             user_input[feature] = st.number_input(feature, value=0.0)
         else:
-            # For features not manually used (like VIN, Make, etc.), give default value
+            # For features not used manually, set default value
             user_input[feature] = st.text_input(feature, value="Unknown")
 
     if st.button("Predict"):
         input_df = pd.DataFrame([user_input], columns=feature_names)
-
-        # Encode categorical columns
         input_df = encode_categorical(input_df)
 
         try:
             prediction = model.predict(input_df)
-            st.success(f"Predicted Population: {int(prediction[0])}")
+            st.success(f"Predicted Electric Vehicle Type: {prediction[0]}")
         except Exception as e:
             st.error(f"Prediction error: {e}")
 
@@ -70,21 +68,17 @@ else:
         st.write("Preview of Uploaded Data:")
         st.dataframe(df.head())
 
-        # Ensure all required features are present
         missing_cols = [col for col in feature_names if col not in df.columns]
         if missing_cols:
             st.error(f"The following required columns are missing from the CSV: {missing_cols}")
         else:
-            # Reorder columns to match the model's expected feature order
             df = df[feature_names]
-
-            # Encode categorical columns
             df = encode_categorical(df)
 
             if st.button("Predict from CSV"):
                 try:
                     prediction = model.predict(df)
-                    df["Predicted Population"] = prediction
+                    df["Predicted EV Type"] = prediction
                     st.write("Predictions:")
                     st.dataframe(df)
                 except Exception as e:
