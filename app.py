@@ -1,93 +1,66 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import joblib
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import confusion_matrix, accuracy_score
 
-# Load saved model, feature names, and encoders
-MODEL_FILENAME = "Random_Forest_model.pkl"  # replace with your actual file path
+# Load the trained model
+model = joblib.load("random_forest_model.pkl")
 
-@st.cache_data
-def load_model():
-    model, feature_names, label_encoders, target_le = joblib.load(MODEL_FILENAME)
-    return model, feature_names, label_encoders, target_le
+st.title("Electric Vehicle Population Prediction App")
 
-model, feature_names, label_encoders, target_le = load_model()
+# Input method selection
+input_method = st.radio("Select input method", ["Manual Input", "Upload CSV"])
 
-st.title("Electric Vehicle Type Classifier")
+# Replace with the actual feature names from your dataset
+feature_names = [
+    "County", "City", "State", "Model Year", "Electric Vehicle Type",
+    "Clean Alternative Fuel Vehicle (CAFV) Eligibility",
+    "Electric Range", "Base MSRP", "Legislative District", "Vehicle Location Latitude",
+    "Vehicle Location Longitude", "Electric Utility"
+]
 
-st.write("Upload CSV or enter input manually to predict EV type.")
+# ========== Manual Input ==========
+if input_method == "Manual Input":
+    st.subheader("Enter Feature Values Manually")
 
-# Option to upload CSV
-uploaded_file = st.file_uploader("Upload CSV file with features", type=["csv"])
+    # Manually input values (adjust types based on actual features)
+    county = st.text_input("County")
+    city = st.text_input("City")
+    state = st.text_input("State")
+    model_year = st.number_input("Model Year", value=2020, step=1)
+    ev_type = st.text_input("Electric Vehicle Type")
+    cafv_eligibility = st.text_input("CAFV Eligibility")
+    electric_range = st.number_input("Electric Range", value=0, step=1)
+    base_msrp = st.number_input("Base MSRP", value=0.0)
+    district = st.number_input("Legislative District", value=0, step=1)
+    lat = st.number_input("Vehicle Location Latitude", value=0.0)
+    lon = st.number_input("Vehicle Location Longitude", value=0.0)
+    electric_utility = st.text_input("Electric Utility")
 
-def preprocess_input(df):
-    # Apply label encoding on categorical columns
-    for col, le in label_encoders.items():
-        if col in df.columns:
-            df[col] = le.transform(df[col].astype(str))
-    
-    # Fill missing columns with 0 or mean (depending on your preference)
-    for col in feature_names:
-        if col not in df.columns:
-            df[col] = 0
-    
-    # Reorder columns to match training data
-    df = df[feature_names]
-    return df
-
-if uploaded_file is not None:
-    # Read CSV
-    input_df = pd.read_csv(uploaded_file)
-    input_df_processed = preprocess_input(input_df)
-    
-    preds = model.predict(input_df_processed)
-    pred_labels = target_le.inverse_transform(preds)
-    
-    st.write("### Predictions")
-    results = input_df.copy()
-    results['Predicted EV Type'] = pred_labels
-    st.dataframe(results)
-
-else:
-    # Manual input form
-    st.write("### Enter feature values manually")
-
-    input_dict = {}
-    for feature in feature_names:
-        val = st.text_input(feature)
-        input_dict[feature] = val if val != '' else '0'  # default 0 if empty
+    # Construct a DataFrame for prediction
+    input_data = pd.DataFrame([[
+        county, city, state, model_year, ev_type,
+        cafv_eligibility, electric_range, base_msrp, district, lat, lon,
+        electric_utility
+    ]], columns=feature_names)
 
     if st.button("Predict"):
-        # Convert to DataFrame
-        input_df = pd.DataFrame([input_dict])
-        
-        # Convert columns to numeric where possible
-        for col in input_df.columns:
-            input_df[col] = pd.to_numeric(input_df[col], errors='coerce').fillna(0)
-        
-        # Preprocess
-        input_df_processed = preprocess_input(input_df)
-        
-        # Predict
-        pred = model.predict(input_df_processed)[0]
-        pred_label = target_le.inverse_transform([pred])[0]
-        
-        st.write(f"### Predicted Electric Vehicle Type: **{pred_label}**")
+        prediction = model.predict(input_data)
+        st.success(f"Predicted Population: {int(prediction[0])}")
 
-# Optional: Display performance metrics summary (hardcoded or loaded from file)
-# For demo, let's just show a confusion matrix if you have test data loaded
+# ========== CSV Upload ==========
+else:
+    st.subheader("Upload a CSV File")
 
-if st.checkbox("Show example confusion matrix"):
-    # This example uses random data; replace with your actual test results
-    y_true = [0, 1, 0, 2, 1, 0]  # example true labels
-    y_pred = [0, 0, 0, 2, 1, 1]  # example predicted labels
-    
-    cm = confusion_matrix(y_true, y_pred)
-    fig, ax = plt.subplots()
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("Actual")
-    st.pyplot(fig)
+    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+
+        st.write("Preview of Uploaded Data:")
+        st.dataframe(df.head())
+
+        if st.button("Predict from CSV"):
+            prediction = model.predict(df)
+            df["Predicted Population"] = prediction
+            st.write("Predictions:")
+            st.dataframe(df)
