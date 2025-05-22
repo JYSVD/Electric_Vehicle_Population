@@ -3,64 +3,71 @@ import pandas as pd
 import joblib
 
 # Load the trained model
-model = joblib.load("random_forest_model.pkl")
+@st.cache_resource
+def load_model():
+    return joblib.load("random_forest.pkl")
 
-st.title("Electric Vehicle Population Prediction App")
+model = load_model()
+
+st.title("Electric Vehicle Predictor")
 
 # Input method selection
-input_method = st.radio("Select input method", ["Manual Input", "Upload CSV"])
+input_method = st.radio("Select Input Method", ["Manual Input", "Upload CSV"])
 
-# Replace with the actual feature names from your dataset
+# Define the feature names used during training (exclude target 'Vehicle Type')
 feature_names = [
-    "County", "City", "State", "Model Year", "Electric Vehicle Type",
-    "Clean Alternative Fuel Vehicle (CAFV) Eligibility",
-    "Electric Range", "Base MSRP", "Legislative District", "Vehicle Location Latitude",
-    "Vehicle Location Longitude", "Electric Utility"
+    "Model Year", "Make", "Model", "Electric Range", "Base MSRP",
+    "Legislative District", "Vehicle Location", "Electric Utility"
+    # Add any other features that were used in training
 ]
+
+# Encode categorical features if needed
+def preprocess_input(df):
+    # Example: convert categorical to numeric manually or load encoders used during training
+    # This is a placeholder — adapt it based on your preprocessing steps
+    df_encoded = df.copy()
+    categorical_features = df.select_dtypes(include=['object']).columns
+    for col in categorical_features:
+        df_encoded[col] = df_encoded[col].astype('category').cat.codes
+    return df_encoded
 
 # ========== Manual Input ==========
 if input_method == "Manual Input":
-    st.subheader("Enter Feature Values Manually")
+    st.subheader("Enter Feature Values")
 
-    # Manually input values (adjust types based on actual features)
-    county = st.text_input("County")
-    city = st.text_input("City")
-    state = st.text_input("State")
-    model_year = st.number_input("Model Year", value=2020, step=1)
-    ev_type = st.text_input("Electric Vehicle Type")
-    cafv_eligibility = st.text_input("CAFV Eligibility")
-    electric_range = st.number_input("Electric Range", value=0, step=1)
-    base_msrp = st.number_input("Base MSRP", value=0.0)
-    district = st.number_input("Legislative District", value=0, step=1)
-    lat = st.number_input("Vehicle Location Latitude", value=0.0)
-    lon = st.number_input("Vehicle Location Longitude", value=0.0)
-    electric_utility = st.text_input("Electric Utility")
+    model_year = st.number_input("Model Year", value=2024)
+    make = st.text_input("Make", value="Tesla")
+    model_name = st.text_input("Model", value="Model S")
+    electric_range = st.number_input("Electric Range", value=300)
+    base_msrp = st.number_input("Base MSRP", value=79990)
+    legislative_district = st.text_input("Legislative District", value="District 1")
+    vehicle_location = st.text_input("Vehicle Location", value="Seattle, WA")
+    electric_utility = st.text_input("Electric Utility", value="Seattle City Light")
 
-    # Construct a DataFrame for prediction
-    input_data = pd.DataFrame([[
-        county, city, state, model_year, ev_type,
-        cafv_eligibility, electric_range, base_msrp, district, lat, lon,
-        electric_utility
+    input_df = pd.DataFrame([[
+        model_year, make, model_name, electric_range, base_msrp,
+        legislative_district, vehicle_location, electric_utility
     ]], columns=feature_names)
 
+    processed_input = preprocess_input(input_df)
+
     if st.button("Predict"):
-        prediction = model.predict(input_data)
-        st.success(f"Predicted Population: {int(prediction[0])}")
+        prediction = model.predict(processed_input)
+        st.success(f"Prediction: {prediction[0]}")
 
-# ========== CSV Upload ==========
+# ========== Upload CSV ==========
 else:
-    st.subheader("Upload a CSV File")
-
-    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
-
+    uploaded_file = st.file_uploader("Upload your input CSV file", type=["csv"])
     if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
+        input_df = pd.read_csv(uploaded_file)
 
-        st.write("Preview of Uploaded Data:")
-        st.dataframe(df.head())
+        st.write("Input Data:")
+        st.dataframe(input_df)
 
-        if st.button("Predict from CSV"):
-            prediction = model.predict(df)
-            df["Predicted Population"] = prediction
+        try:
+            processed_input = preprocess_input(input_df)
+            prediction = model.predict(processed_input)
             st.write("Predictions:")
-            st.dataframe(df)
+            st.write(prediction)
+        except Exception as e:
+            st.error(f"Error during prediction: {e}")
