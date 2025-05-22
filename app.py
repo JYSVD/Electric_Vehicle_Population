@@ -10,19 +10,18 @@ st.title("Electric Vehicle Population Prediction App")
 # Input method selection
 input_method = st.radio("Select input method", ["Manual Input", "Upload CSV"])
 
-# Replace with the actual feature names from your dataset
+# Updated feature names list without Latitude and Longitude
 feature_names = [
     "County", "City", "State", "Model Year",
     "Clean Alternative Fuel Vehicle (CAFV) Eligibility",
-    "Electric Range", "Base MSRP", "Legislative District", "Vehicle Location Latitude",
-    "Vehicle Location Longitude", "Electric Utility"
+    "Electric Range", "Base MSRP", "Legislative District",
+    "Electric Utility"
 ]
 
 # ========== Manual Input ==========
 if input_method == "Manual Input":
     st.subheader("Enter Feature Values Manually")
 
-    # Manually input values (adjust types based on actual features)
     county = st.text_input("County")
     city = st.text_input("City")
     state = st.text_input("State")
@@ -31,14 +30,12 @@ if input_method == "Manual Input":
     electric_range = st.number_input("Electric Range", value=0, step=1)
     base_msrp = st.number_input("Base MSRP", value=0.0)
     district = st.number_input("Legislative District", value=0, step=1)
-    lat = st.number_input("Vehicle Location Latitude", value=0.0)
-    lon = st.number_input("Vehicle Location Longitude", value=0.0)
     electric_utility = st.text_input("Electric Utility")
 
-       # Construct a DataFrame for prediction
+    # Construct DataFrame without lat/lon
     input_data = pd.DataFrame([[
         county, city, state, model_year,
-        cafv_eligibility, electric_range, base_msrp, district, lat, lon,
+        cafv_eligibility, electric_range, base_msrp, district,
         electric_utility
     ]], columns=feature_names)
 
