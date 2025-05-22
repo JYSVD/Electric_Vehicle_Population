@@ -21,11 +21,11 @@ utility_map = {"UtilityA": 0, "UtilityB": 1}
 input_method = st.radio("Select input method", ["Manual Input", "Upload CSV"])
 
 def encode_categorical(data):
-    data["County"] = county_map.get(data["County"], -1)
-    data["City"] = city_map.get(data["City"], -1)
-    data["State"] = state_map.get(data["State"], -1)
-    data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"] = cafv_map.get(data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"], -1)
-    data["Electric Utility"] = utility_map.get(data["Electric Utility"], -1)
+    data["County"] = data["County"].map(county_map).fillna(-1).astype(int)
+    data["City"] = data["City"].map(city_map).fillna(-1).astype(int)
+    data["State"] = data["State"].map(state_map).fillna(-1).astype(int)
+    data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"] = data["Clean Alternative Fuel Vehicle (CAFV) Eligibility"].map(cafv_map).fillna(-1).astype(int)
+    data["Electric Utility"] = data["Electric Utility"].map(utility_map).fillna(-1).astype(int)
     return data
 
 if input_method == "Manual Input":
@@ -45,7 +45,7 @@ if input_method == "Manual Input":
     if st.button("Predict"):
         input_df = pd.DataFrame([user_input], columns=feature_names)
 
-        # Encode categorical columns
+        # Encode categorical columns correctly using .map()
         input_df = encode_categorical(input_df)
 
         try:
@@ -67,7 +67,7 @@ else:
             if list(df.columns) != feature_names:
                 st.error(f"CSV columns do not match expected features.\nExpected columns: {feature_names}")
             else:
-                # Encode categorical columns in CSV
+                # Encode categorical columns in CSV using .map()
                 df = encode_categorical(df)
 
                 try:
